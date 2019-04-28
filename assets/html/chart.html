@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh" style="height: 100%;margin: 0;">
+<head>
+    <meta charset="UTF-8">
+    <title>chart</title>
+</head>
+<body style="height: 100%;margin: 0;">
+<button id="test">改变</button>
+<div id="chart" style="height: 100%;margin: 0;"></div>
+<script src="../js/jquery-3.4.0.min.js"></script>
+<script src="../js/echarts.min.js"></script>
+<script>
+    var chartContainer = $("#chart");
+    var myChart = echarts.init(chartContainer.get(0), "dark", {renderer: 'canvas'});
+    var line = false;
+    var count = 0;
+    var legend = ['邮件营销', '联盟广告', '视频广告', '直接访问', '搜索引擎'];
+    var xAxis = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    var dataList = [
+        [120, 132, 101, 134, 90, 230, 210],
+        [220, 182, 191, 234, 290, 330, 310],
+        [150, 232, 201, 154, 190, 330, 410],
+        [320, 332, 301, 334, 390, 330, 320],
+        [820, 932, 901, 934, 1290, 1330, 1320]
+    ];
+    var test = $("#test");
+    test.click(function () {
+        line = !line;
+        myChart.showLoading("default", {text: "获取数据中"});
+        setTimeout(function () {
+            count++;
+            var _count = count % 5 + 1;
+            var options = {
+                legend: legend.slice(0, _count),
+                xAxis: xAxis,
+                line: line,
+                dataList: dataList.slice(0, _count)
+            };
+            myChart.hideLoading();
+            ymwyChart(options);
+        }, 500);
+    });
+    test.click();
+
+    function ymwyChart(options) {
+        var series = [];
+        var dataList = options["dataList"];
+        var legend = options["legend"];
+        for (var index = 0; index < dataList.length; index++) {
+            series.push({
+                barGap: 0,
+                name: legend[index],
+                type: options.line === true ? "line" : "bar",
+                data: dataList[index],
+                label: {
+                    show: false,
+                    rotate: 90,
+                    align: 'left',
+                    verticalAlign: 'middle',
+                    position: 'insideBottom',
+                    distance: 15,
+                    fontSize: 18,
+                    formatter: '{c}'
+                }
+            });
+        }
+        var option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: {
+                data: options["legend"]
+            },
+            xAxis: [{
+                type: 'category',
+                data: options["xAxis"]
+            }],
+            yAxis: [{
+                type: 'value'
+            }],
+            series: series,
+            textStyle: {
+                fontSize: 18
+            }
+        };
+
+        myChart.setOption(option, true);
+    }
+</script>
+</body>
+</html>
