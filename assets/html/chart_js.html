@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh" style="height: 100%;margin: 0;">
+<head>
+    <meta charset="UTF-8">
+    <title>chart</title>
+</head>
+<body style="height: 100%;margin: 0;">
+<button id="test" style="height: 10%;">改变</button>
+<canvas id="ymwyChart" style="height: 90%;margin: 0;width: 100%;"></canvas>
+<script src="../js/Chart.min.js"></script>
+<script>
+    var chartContext = document.getElementById('ymwyChart').getContext('2d');
+    var line = false;
+    var test = document.getElementById('test');
+    var legend = ['邮件营销确实挺长的了', '联盟广告长就是了,没法处理',
+        '视频广告看来文字是很长了,能不能处理一下',
+        '直接访问', '搜索引擎'];
+    var xAxis = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    var dataList = [
+        [120, 132, 101, 134, 90, 230, 210],
+        [220, 182, 191, 234, 290, 330, 310],
+        [150, 232, 201, 154, 190, 330, 410],
+        [320, 332, 301, 334, 390, 330, 320],
+        [820, 932, 901, 934, 1290, 1330, 1320]
+    ];
+    var backgroundColor = [
+        'rgba(255, 99, 132, 0.2)',
+        'rgba(54, 162, 235, 0.2)',
+        'rgba(255, 206, 86, 0.2)',
+        'rgba(75, 192, 192, 0.2)',
+        'rgba(153, 102, 255, 0.2)',
+        'rgba(255, 159, 64, 0.2)'
+    ];
+    var borderColor = [
+        'rgba(255, 99, 132, 1)',
+        'rgba(54, 162, 235, 1)',
+        'rgba(255, 206, 86, 1)',
+        'rgba(75, 192, 192, 1)',
+        'rgba(153, 102, 255, 1)',
+        'rgba(255, 159, 64, 1)'
+    ];
+    var ymwyChart = new Chart(chartContext, {
+        type: "bar",
+        data: {
+            labels: xAxis,
+            datasets: dataList.map(function (value, index, array) {
+                return {
+                    label: legend[index],
+                    data: value,
+                    backgroundColor: backgroundColor[index],
+                    borderColor: borderColor[index]
+                };
+            })
+        },
+        options: {}
+    });
+
+    test.addEventListener('click', function () {
+        line = !line;
+        setTimeout(function () {
+        }, 500);
+    });
+    test.click();
+
+    function ymwyChart(options) {
+
+    }
+</script>
+</body>
+</html>
