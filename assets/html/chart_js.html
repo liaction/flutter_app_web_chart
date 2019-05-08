@@ -6,7 +6,7 @@
 </head>
 <body style="height: 100%;margin: 0;">
 <button id="test" style="height: 10%;">改变</button>
-<canvas id="ymwyChart" style="height: 90%;margin: 0;width: 100%;"></canvas>
+<canvas id="ymwyChart" style="height: 90%;margin: 0;width: 100%;background-color: #161816;"></canvas>
 <script src="../js/Chart.min.js"></script>
 <script>
     var chartContext = document.getElementById('ymwyChart').getContext('2d');
@@ -40,7 +40,7 @@
         'rgba(255, 159, 64, 1)'
     ];
     var ymwyChart = new Chart(chartContext, {
-        type: "bar",
+        type: "line",
         data: {
             labels: xAxis,
             datasets: dataList.map(function (value, index, array) {
@@ -48,11 +48,21 @@
                     label: legend[index],
                     data: value,
                     backgroundColor: backgroundColor[index],
-                    borderColor: borderColor[index]
+                    borderColor: borderColor[index],
+                    fill:false
                 };
             })
         },
-        options: {}
+        options: {
+            tooltips: {
+                mode: 'index',
+                intersect: false
+            },
+            responsive: true,
+            legend:{
+                position:"right"
+            }
+        }
     });
 
     test.addEventListener('click', function () {
