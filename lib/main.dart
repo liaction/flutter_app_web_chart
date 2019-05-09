@@ -5,7 +5,7 @@ import 'ymwy_chart.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  final title = "Webview & Chart";
+  final title = "Chart";
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    initTestData();
     super.initState();
   }
 
@@ -46,13 +45,22 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         centerTitle: true,
+        actions: <Widget>[
+          IconButton(icon: Icon(Icons.refresh), onPressed: (){
+            initTestData(reset: true);
+            setState(() {
+            });
+          }),
+        ],
       ),
       body: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
         child: Column(
           children: chartDataList.map((chartData) {
             return Container(
               height: everyHeight,
               width: everyWidth,
+              margin: const EdgeInsets.all(5),
               child: YMWYChart(
                 chartData: chartData,
               ),
@@ -60,19 +68,21 @@ class _MyHomePageState extends State<MyHomePage> {
           }).toList(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          initTestData();
-          setState(() {});
-        },
-        tooltip: 'refresh',
-        child: Icon(Icons.refresh),
-      ),
+//      floatingActionButton: FloatingActionButton(
+//        onPressed: () {
+//          initTestData();
+//          setState(() {});
+//        },
+//        tooltip: 'add',
+//        child: Icon(Icons.add),
+//      ),
     );
   }
-
-  void initTestData() {
-    for (int index = 0; index < 1; index++) {
+  bool change = false;
+  void initTestData({bool reset = false}) {
+    chartDataList.clear();
+    change = !change;
+    for (int index = 0; index < 6; index++) {
       chartDataList.add([
         YMWYChartData(
             children: [
@@ -104,9 +114,9 @@ class _MyHomePageState extends State<MyHomePage> {
             tipLabel: YMWYChartTipData(label: "西北五省"),
             yChartLabel: "排名",
             charDataLabel: "西北五省",
-            chartType: YMWYChartType.REACT,
+            chartType: chartDataList.length.isEven ? YMWYChartType.REACT : YMWYChartType.LINE,
             color: Colors.red,
-            showTipChart: true),
+            showTipChart: change),
         YMWYChartData(
           children: [
             YMWYChartItemData(

@@ -20,13 +20,17 @@ class YMWYChart extends StatefulWidget {
 }
 
 class _YMWYChartState extends State<YMWYChart> {
-  InAppWebViewController appWebViewController;
   YMWYWebChartBean webChartBean;
 
+  // 图表内部使用
+  final double everyMargin = 5;
+  final double tipWidth = 100;
+  final double fontSize = 12;
+  final double xLabelHeight = 30;
+  final double xMaxEveryWidth = 60;
+  final double padding = 25;
+
   void resolveData() {
-    if (null == appWebViewController) {
-      return;
-    }
     List<String> legend = List<String>();
     List<String> xAxis = List<String>();
     bool line = false;
@@ -34,6 +38,22 @@ class _YMWYChartState extends State<YMWYChart> {
     List<List<String>> dataList = List();
     String yLabel = "";
     if (null != widget.chartData && widget.chartData.isNotEmpty) {
+      // 移除无效的数据
+      widget.chartData.removeWhere((data) =>
+          data == null || data.children == null || data.children.isEmpty);
+
+      // 剩下的数据都是有数据的,紧接着,处理长度问题,取长度最小值,为啥?你说为啥?继续往下看,别捣乱
+      var goodCharDataLengthList =
+          widget.chartData.map((data) => data.children.length).toList();
+      // 排个序,最小的在第一位
+      goodCharDataLengthList.sort();
+      // 把最小的长度取出
+      var validLength = goodCharDataLengthList.first;
+      // 只取有效长度值
+      for (var charData in widget.chartData) {
+        // 移除过长的数据
+        charData.children.removeRange(validLength, charData.children.length);
+      }
       haveData = true;
       var chartData = widget.chartData.first;
       line = chartData.chartType == YMWYChartType.LINE;
@@ -58,11 +78,9 @@ class _YMWYChartState extends State<YMWYChart> {
         dataList: dataList,
         haveData: haveData,
         ymwy: {"yLabel": yLabel});
-    var scriptCode = """
-      ymwyChart($webChartBean);
-    """;
-    appWebViewController?.injectScriptCode(scriptCode);
   }
+
+  void doWhenTipLabelClick(int index) {}
 
   @override
   void didUpdateWidget(YMWYChart oldWidget) {
@@ -71,56 +89,287 @@ class _YMWYChartState extends State<YMWYChart> {
   }
 
   @override
+  void initState() {
+    resolveData();
+    super.initState();
+  }
+
+  List<Widget> initDraw() {
+    final size = MediaQuery.of(context).size;
+    final yHeight = size.height / 2 - padding * 2 - xLabelHeight;
+    final xDataCount = webChartBean.xAxis.length;
+    final xEveryWidth = min(
+        (size.width -
+                fontSize -
+                everyMargin * 3 -
+                padding * 2 -
+                (webChartBean.legend.isNotEmpty ? tipWidth : 0)) /
+            (1.0 * (xDataCount == 0 ? 1 : xDataCount)),
+        xMaxEveryWidth);
+    // 获取最大值
+    final yValueList = webChartBean.dataList
+        .expand((pair) => pair)
+        .toList()
+        .map((v) => double.tryParse(v) ?? 0.0)
+        .toList();
+    yValueList.sort();
+    final yMaxValue = yValueList.last;
+    // x坐标label
+    bool canSkipLabel = webChartBean.xAxis.length >= 6;
+    List<Widget> fillWidgets = List();
+    for (var xIndex = 0; xIndex < webChartBean.xAxis.length; ++xIndex) {
+      var xLabel = webChartBean.xAxis[xIndex];
+      var xLabelFlagWidget = Positioned(
+        child: Container(
+          width: 0.3,
+          height: 3,
+          decoration: BoxDecoration(
+            color: Colors.white,
+          ),
+        ),
+        bottom: xLabelHeight,
+        left: fontSize + everyMargin * 2 + xEveryWidth / 2.0 * (2 * xIndex + 1),
+      );
+      fillWidgets.add(xLabelFlagWidget);
+      if (canSkipLabel) {
+        if (xIndex.isEven) {
+          continue;
+        }
+      }
+      var xLabelWidget = Positioned(
+        child: SizedBox(
+          width: xEveryWidth,
+          height: xLabelHeight,
+          child: FittedBox(
+            child: Text(
+              xLabel,
+              style: TextStyle(
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        bottom: 0,
+        left: fontSize + everyMargin * 2 + xEveryWidth * xIndex,
+      );
+      fillWidgets.add(xLabelWidget);
+    }
+    return fillWidgets
+      ..addAll(webChartBean.line
+          ? drawLine(yMaxValue, xEveryWidth, yHeight)
+          : drawBar(yMaxValue, xEveryWidth, yHeight));
+  }
+
+  List<Widget> drawBar(double maxValue, double everyWidth, double yHeight) {
+    List<Widget> fillWidgets = List();
+    double xItemWidth =
+        (everyWidth - everyMargin) / webChartBean.dataList.length;
+    for (var index = 0; index < webChartBean.dataList.length; ++index) {
+      var dataList = webChartBean.dataList[index];
+      var color = colors[index % colors.length];
+      for (var itemIndex = 0; itemIndex < dataList.length; ++itemIndex) {
+        var data = dataList[itemIndex];
+        data = double.tryParse(data) ?? 0;
+        var height = data * yHeight / (maxValue);
+        var xLabelFlagWidget = Positioned(
+          child: Container(
+            width: xItemWidth,
+            height: height,
+            decoration: BoxDecoration(
+              color: color,
+            ),
+          ),
+          bottom: xLabelHeight,
+          left: fontSize +
+              everyMargin * 2 +
+              everyWidth * itemIndex +
+              xItemWidth * index,
+        );
+        fillWidgets.add(xLabelFlagWidget);
+      }
+    }
+    return fillWidgets;
+  }
+
+  bool _useTest = false;
+
+  List<Widget> drawLine(double maxValue, double everyWidth, double yHeight,
+      {bool useSort = true}) {
+    List<Widget> fillWidgets = List();
+    for (var index = 0; index < webChartBean.dataList.length; ++index) {
+      var dataList = webChartBean.dataList[index];
+      var color = colors[index % colors.length];
+      for (var itemIndex = 0; itemIndex < dataList.length; ++itemIndex) {
+        var data = dataList[itemIndex];
+        data = double.tryParse(data) ?? 0;
+        var height = data * yHeight / (maxValue);
+        if (useSort) {
+          height = yHeight - height;
+        }
+        if (_useTest) {
+          var xLabelFlagWidget = Positioned(
+            child: Container(
+              width: 1,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            bottom: xLabelHeight + height,
+            top: yHeight - height,
+            left: fontSize +
+                everyMargin * 2 +
+                everyWidth / 2.0 * (2 * itemIndex + 1),
+          );
+          fillWidgets.add(xLabelFlagWidget);
+        }
+        if (itemIndex != dataList.length - 1) {
+          // 画线
+          var dataNext = dataList[itemIndex + 1];
+          dataNext = double.tryParse(dataNext) ?? 0;
+          var heightNext = dataNext * yHeight / (maxValue);
+          if (useSort) {
+            heightNext = yHeight - heightNext;
+          }
+          var lineWidget = Positioned(
+            child: Transform.rotate(
+              angle: -atan((heightNext - height) / everyWidth),
+              alignment: Alignment.topLeft,
+              child: Container(
+                width: sqrt(everyWidth * everyWidth +
+                    (heightNext - height) * (heightNext - height)),
+                height: 0.8,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            bottom: useSort ? xLabelHeight + height : xLabelHeight + height,
+            left: fontSize +
+                everyMargin * 2 +
+                everyWidth / 2.0 * (2 * itemIndex + 1),
+          );
+          fillWidgets.add(lineWidget);
+        }
+      }
+    }
+    return fillWidgets;
+  }
+
+  List<Widget> drawTipLabel() {
+    List<Widget> fillWidgets = List();
+    double fixValue = 0;
+    double left = MediaQuery.of(context).size.width - padding - tipWidth;
+    for (var index = 0; index < webChartBean.legend.length; ++index) {
+      bool hide = false;
+      var color = colors[index];
+      var legend = webChartBean.legend[index];
+      var textSpan = TextSpan(
+          style: TextStyle(
+            color: hide ? Colors.white30 : Colors.white,
+            fontSize: fontSize,
+          ),
+          children: [
+            TextSpan(
+                text: "__",
+                style: TextStyle(
+                  color: color,
+                  backgroundColor: color.withOpacity(hide ? 0.5 : 1),
+                )),
+            TextSpan(text: "  "),
+            TextSpan(text: legend),
+          ]);
+      TextPainter textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout(maxWidth: tipWidth);
+      double height = textPainter.height;
+      fixValue += height + everyMargin;
+      var legendWidget = Positioned(
+          right: 0,
+          top: fixValue,
+          left: left,
+          child: GestureDetector(
+            onTap: () {
+              doWhenTipLabelClick(index);
+            },
+            child: Text.rich(
+              textSpan,
+            ),
+          ));
+      fillWidgets.add(legendWidget);
+    }
+    return fillWidgets;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(5),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Color(0xFF161816),
       ),
-      child: SizedBox.expand(
-        child: InAppWebView(
-          initialFile: "assets/html/chart.html",
-          onWebViewCreated: (c) {
-            appWebViewController = c;
-          },
-          onConsoleMessage: (c, message) {
-            debugPrint("${message.message}");
-          },
-          onLoadStop: (c, u) {
-            resolveData();
-          },
+      child: Listener(
+        onPointerDown: (PointerDownEvent details){
+          RenderBox renderBox = context.findRenderObject();
+          var localPosition = renderBox.globalToLocal(details.position);
+          debugPrint("******* start : global >> ${details.position} , local >> $localPosition");
+        },
+        onPointerMove: (PointerMoveEvent details){
+          RenderBox renderBox = context.findRenderObject();
+          var localPosition = renderBox.globalToLocal(details.position);
+          debugPrint("******* update : global >> ${details.position} , local >> $localPosition");
+        },
+        onPointerUp: (PointerUpEvent details){
+          debugPrint("******* end ***********");
+        },
+        child: SizedBox.expand(
+          child: Stack(
+            children: <Widget>[
+              RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  webChartBean.ymwy['yLabel'] ?? "",
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: fontSize + everyMargin,
+                top: 0,
+                bottom: xLabelHeight,
+                child: Container(
+                  width: 0.3,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: fontSize + everyMargin,
+                right: webChartBean.legend.isNotEmpty ? tipWidth : 0,
+                bottom: xLabelHeight,
+                child: Container(
+                  height: 0.3,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              // 下面就根据具体情况进行处理了
+            ]
+              ..addAll(webChartBean.haveData ? initDraw() : [Container()])
+              ..addAll(webChartBean.haveData && webChartBean.legend.isNotEmpty
+                  ? drawTipLabel()
+                  : [Container()]),
+          ),
         ),
       ),
     );
-  }
-}
-
-class YMWYWebChartBean {
-  final List<String> legend;
-  final List<String> xAxis;
-  final bool line;
-  final List dataList;
-  final bool haveData;
-  final Map ymwy;
-
-  YMWYWebChartBean(
-      {this.ymwy,
-      this.legend,
-      this.xAxis,
-      this.line,
-      this.dataList,
-      this.haveData});
-
-  @override
-  String toString() {
-    return """{
-    legend:${jsonEncode(legend)},
-    xAxis:${jsonEncode(xAxis)},
-    line:${jsonEncode(line)},
-    dataList:${jsonEncode(dataList)},
-    haveData:${jsonEncode(haveData)},
-    ymwy:${jsonEncode(ymwy)}
-    }""";
   }
 }
 
@@ -248,7 +497,7 @@ class YMWYChartPainter extends CustomPainter {
   final double rightMargin = 10;
   final double jianTouLength = 5;
   final double everyMargin = 5;
-  double tipWidth = 100;
+  final double tipWidth = 100;
   List<YMWYPair<double, double>> pairList = List();
 
   ///
@@ -874,5 +1123,122 @@ class _YMWYFlutterChartState extends State<YMWYFlutterChart> {
         ..position = offsetLocal
         ..up = true;
     });
+  }
+}
+
+///
+/// webview
+///
+class YMWYWebChart extends StatefulWidget {
+  final List<YMWYChartData> chartData;
+
+  YMWYWebChart({Key key, this.chartData}) : super(key: key);
+
+  @override
+  _YMWYWebChartState createState() => _YMWYWebChartState();
+}
+
+class _YMWYWebChartState extends State<YMWYWebChart> {
+  InAppWebViewController appWebViewController;
+  YMWYWebChartBean webChartBean;
+
+  void resolveData() {
+    if (null == appWebViewController) {
+      return;
+    }
+    List<String> legend = List<String>();
+    List<String> xAxis = List<String>();
+    bool line = false;
+    bool haveData = false;
+    List<List<String>> dataList = List();
+    String yLabel = "";
+    if (null != widget.chartData && widget.chartData.isNotEmpty) {
+      haveData = true;
+      var chartData = widget.chartData.first;
+      line = chartData.chartType == YMWYChartType.LINE;
+      bool showTipLabel = chartData.showTipChart;
+      yLabel = chartData.yChartLabel ?? "";
+      xAxis.addAll(chartData.children.map((data) => data.xLabel));
+      for (var index = 0; index < widget.chartData.length; ++index) {
+        var cd = widget.chartData[index];
+        if (showTipLabel) {
+          legend.add(cd.tipLabel.label);
+        }
+        var d = cd.children.map((data) => "${data.yValue}").toList();
+        dataList.add(d);
+      }
+    } else {
+      haveData = false;
+    }
+    webChartBean = YMWYWebChartBean(
+        line: line,
+        xAxis: xAxis,
+        legend: legend,
+        dataList: dataList,
+        haveData: haveData,
+        ymwy: {"yLabel": yLabel});
+    var scriptCode = """
+      ymwyChart($webChartBean);
+    """;
+    appWebViewController?.injectScriptCode(scriptCode);
+  }
+
+  @override
+  void didUpdateWidget(YMWYWebChart oldWidget) {
+    resolveData();
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: Color(0xFF161816),
+      ),
+      child: SizedBox.expand(
+        child: InAppWebView(
+          initialFile: "assets/html/chart.html",
+          onWebViewCreated: (c) {
+            appWebViewController = c;
+          },
+          onConsoleMessage: (c, message) {
+            debugPrint("${message.message}");
+          },
+          onLoadStop: (c, u) {
+            resolveData();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class YMWYWebChartBean {
+  final List<String> legend;
+  final List<String> xAxis;
+  final bool line;
+  final List dataList;
+  final bool haveData;
+  final Map ymwy;
+
+  YMWYWebChartBean(
+      {this.ymwy,
+      this.legend,
+      this.xAxis,
+      this.line,
+      this.dataList,
+      this.haveData});
+
+  @override
+  String toString() {
+    return """{
+    legend:${jsonEncode(legend)},
+    xAxis:${jsonEncode(xAxis)},
+    line:${jsonEncode(line)},
+    dataList:${jsonEncode(dataList)},
+    haveData:${jsonEncode(haveData)},
+    ymwy:${jsonEncode(ymwy)}
+    }""";
   }
 }
