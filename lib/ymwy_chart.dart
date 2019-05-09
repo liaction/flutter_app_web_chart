@@ -32,16 +32,18 @@ class _YMWYChartState extends State<YMWYChart> {
     bool line = false;
     bool haveData = false;
     List<List<String>> dataList = List();
+    String yLabel = "";
     if (null != widget.chartData && widget.chartData.isNotEmpty) {
       haveData = true;
       var chartData = widget.chartData.first;
       line = chartData.chartType == YMWYChartType.LINE;
       bool showTipLabel = chartData.showTipChart;
+      yLabel = chartData.yChartLabel ?? "";
       xAxis.addAll(chartData.children.map((data) => data.xLabel));
       for (var index = 0; index < widget.chartData.length; ++index) {
         var cd = widget.chartData[index];
         if (showTipLabel) {
-          legend.add(cd.charDataLabel);
+          legend.add(cd.tipLabel.label);
         }
         var d = cd.children.map((data) => "${data.yValue}").toList();
         dataList.add(d);
@@ -50,12 +52,12 @@ class _YMWYChartState extends State<YMWYChart> {
       haveData = false;
     }
     webChartBean = YMWYWebChartBean(
-      line: line,
-      xAxis: xAxis,
-      legend: legend,
-      dataList: dataList,
-      haveData: haveData,
-    );
+        line: line,
+        xAxis: xAxis,
+        legend: legend,
+        dataList: dataList,
+        haveData: haveData,
+        ymwy: {"yLabel": yLabel});
     var scriptCode = """
       ymwyChart($webChartBean);
     """;
@@ -99,9 +101,15 @@ class YMWYWebChartBean {
   final bool line;
   final List dataList;
   final bool haveData;
+  final Map ymwy;
 
   YMWYWebChartBean(
-      {this.legend, this.xAxis, this.line, this.dataList, this.haveData});
+      {this.ymwy,
+      this.legend,
+      this.xAxis,
+      this.line,
+      this.dataList,
+      this.haveData});
 
   @override
   String toString() {
@@ -110,7 +118,8 @@ class YMWYWebChartBean {
     xAxis:${jsonEncode(xAxis)},
     line:${jsonEncode(line)},
     dataList:${jsonEncode(dataList)},
-    haveData:${jsonEncode(haveData)}
+    haveData:${jsonEncode(haveData)},
+    ymwy:${jsonEncode(ymwy)}
     }""";
   }
 }

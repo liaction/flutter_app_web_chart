@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'ymwy_chart.dart';
 
 void main() => runApp(MyApp());
@@ -62,8 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           initTestData();
-          setState(() {
-          });
+          setState(() {});
         },
         tooltip: 'refresh',
         child: Icon(Icons.refresh),
@@ -83,21 +83,21 @@ class _MyHomePageState extends State<MyHomePage> {
               YMWYChartItemData(
                   xValue: 3.0, yValue: 16, xLabel: "03月", yLabel: "第十六"),
               YMWYChartItemData(
-                  xValue: 4.0, yValue: 12, xLabel: "12月", yLabel: "第十二"),
+                  xValue: 4.0, yValue: 12, xLabel: "04月", yLabel: "第十二"),
               YMWYChartItemData(
-                  xValue: 1.0, yValue: 3, xLabel: "01月", yLabel: "第三"),
+                  xValue: 1.0, yValue: 3, xLabel: "05月", yLabel: "第三"),
               YMWYChartItemData(
-                  xValue: 2.0, yValue: 0, xLabel: "02月", yLabel: "无"),
+                  xValue: 2.0, yValue: 0, xLabel: "06月", yLabel: "无"),
               YMWYChartItemData(
-                  xValue: 3.0, yValue: 16, xLabel: "03月", yLabel: "第十六"),
+                  xValue: 3.0, yValue: 16, xLabel: "07月", yLabel: "第十六"),
               YMWYChartItemData(
-                  xValue: 4.0, yValue: 12, xLabel: "12月", yLabel: "第十二"),
+                  xValue: 4.0, yValue: 12, xLabel: "08月", yLabel: "第十二"),
               YMWYChartItemData(
-                  xValue: 1.0, yValue: 3, xLabel: "01月", yLabel: "第三"),
+                  xValue: 1.0, yValue: 3, xLabel: "09月", yLabel: "第三"),
               YMWYChartItemData(
-                  xValue: 2.0, yValue: 0, xLabel: "02月", yLabel: "无"),
+                  xValue: 2.0, yValue: 0, xLabel: "10月", yLabel: "无"),
               YMWYChartItemData(
-                  xValue: 3.0, yValue: 16, xLabel: "03月", yLabel: "第十六"),
+                  xValue: 3.0, yValue: 16, xLabel: "11月", yLabel: "第十六"),
               YMWYChartItemData(
                   xValue: 4.0, yValue: 12, xLabel: "12月", yLabel: "第十二"),
             ],
@@ -106,24 +106,27 @@ class _MyHomePageState extends State<MyHomePage> {
             charDataLabel: "西北五省",
             chartType: YMWYChartType.REACT,
             color: Colors.red,
-            showTipChart: false),
+            showTipChart: true),
         YMWYChartData(
           children: [
-            YMWYChartItemData(xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
+            YMWYChartItemData(
+                xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
             YMWYChartItemData(
                 xValue: 1.0, yValue: 3, xLabel: "02月", yLabel: "第三"),
             YMWYChartItemData(
                 xValue: 2.0, yValue: 10, xLabel: "03月", yLabel: "第十"),
             YMWYChartItemData(
                 xValue: 3.0, yValue: 1, xLabel: "12月", yLabel: "第一"),
-            YMWYChartItemData(xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
+            YMWYChartItemData(
+                xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
             YMWYChartItemData(
                 xValue: 1.0, yValue: 3, xLabel: "02月", yLabel: "第三"),
             YMWYChartItemData(
                 xValue: 2.0, yValue: 10, xLabel: "03月", yLabel: "第十"),
             YMWYChartItemData(
                 xValue: 3.0, yValue: 1, xLabel: "12月", yLabel: "第一"),
-            YMWYChartItemData(xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
+            YMWYChartItemData(
+                xValue: 1.0, yValue: 0, xLabel: "01月", yLabel: "无"),
             YMWYChartItemData(
                 xValue: 1.0, yValue: 3, xLabel: "02月", yLabel: "第三"),
             YMWYChartItemData(
