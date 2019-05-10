@@ -30,6 +30,10 @@ class _YMWYChartState extends State<YMWYChart> {
   final double xMaxEveryWidth = 60;
   final double padding = 25;
 
+  // -1标识无
+  int currentTipIndex = -1;
+  double currentChartEveryXWidth = -1;
+
   void resolveData() {
     List<String> legend = List<String>();
     List<String> xAxis = List<String>();
@@ -106,6 +110,7 @@ class _YMWYChartState extends State<YMWYChart> {
                 (webChartBean.legend.isNotEmpty ? tipWidth : 0)) /
             (1.0 * (xDataCount == 0 ? 1 : xDataCount)),
         xMaxEveryWidth);
+    currentChartEveryXWidth = xEveryWidth;
     // 获取最大值
     final yValueList = webChartBean.dataList
         .expand((pair) => pair)
@@ -128,7 +133,7 @@ class _YMWYChartState extends State<YMWYChart> {
           ),
         ),
         bottom: xLabelHeight,
-        left: fontSize + everyMargin * 2 + xEveryWidth / 2.0 * (2 * xIndex + 1),
+        left: everyMargin + xEveryWidth / 2.0 * (2 * xIndex + 1),
       );
       fillWidgets.add(xLabelFlagWidget);
       if (canSkipLabel) {
@@ -151,7 +156,7 @@ class _YMWYChartState extends State<YMWYChart> {
           ),
         ),
         bottom: 0,
-        left: fontSize + everyMargin * 2 + xEveryWidth * xIndex,
+        left: everyMargin + xEveryWidth * xIndex,
       );
       fillWidgets.add(xLabelWidget);
     }
@@ -181,8 +186,8 @@ class _YMWYChartState extends State<YMWYChart> {
             ),
           ),
           bottom: xLabelHeight,
-          left: fontSize +
-              everyMargin * 2 +
+          left: everyMargin +
+              everyMargin / 2 +
               everyWidth * itemIndex +
               xItemWidth * index,
         );
@@ -218,9 +223,7 @@ class _YMWYChartState extends State<YMWYChart> {
             ),
             bottom: xLabelHeight + height,
             top: yHeight - height,
-            left: fontSize +
-                everyMargin * 2 +
-                everyWidth / 2.0 * (2 * itemIndex + 1),
+            left: everyMargin + everyWidth / 2.0 * (2 * itemIndex + 1),
           );
           fillWidgets.add(xLabelFlagWidget);
         }
@@ -247,9 +250,7 @@ class _YMWYChartState extends State<YMWYChart> {
               ),
             ),
             bottom: useSort ? xLabelHeight + height : xLabelHeight + height,
-            left: fontSize +
-                everyMargin * 2 +
-                everyWidth / 2.0 * (2 * itemIndex + 1),
+            left: everyMargin + everyWidth / 2.0 * (2 * itemIndex + 1),
           );
           fillWidgets.add(lineWidget);
         }
@@ -307,69 +308,158 @@ class _YMWYChartState extends State<YMWYChart> {
 
   @override
   Widget build(BuildContext context) {
+    final eventTipLeft = fontSize + everyMargin;
+    final eventTipPositionedRight =
+        (webChartBean.legend.isNotEmpty ? tipWidth : 0) + everyMargin;
+    final eventTipRight =
+        MediaQuery.of(context).size.width - tipWidth - padding;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Color(0xFF161816),
       ),
-      child: Listener(
-        onPointerDown: (PointerDownEvent details){
-          RenderBox renderBox = context.findRenderObject();
-          var localPosition = renderBox.globalToLocal(details.position);
-          debugPrint("******* start : global >> ${details.position} , local >> $localPosition");
-        },
-        onPointerMove: (PointerMoveEvent details){
-          RenderBox renderBox = context.findRenderObject();
-          var localPosition = renderBox.globalToLocal(details.position);
-          debugPrint("******* update : global >> ${details.position} , local >> $localPosition");
-        },
-        onPointerUp: (PointerUpEvent details){
-          debugPrint("******* end ***********");
-        },
-        child: SizedBox.expand(
-          child: Stack(
-            children: <Widget>[
-              RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  webChartBean.ymwy['yLabel'] ?? "",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
+      child: SizedBox.expand(
+        child: Stack(
+          children: <Widget>[
+            RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                webChartBean.ymwy['yLabel'] ?? "",
+                style: TextStyle(
+                  color: Colors.white,
                 ),
               ),
-              Positioned(
-                left: fontSize + everyMargin,
-                top: 0,
-                bottom: xLabelHeight,
-                child: Container(
-                  width: 0.3,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                  ),
+            ),
+            Positioned(
+              left: fontSize + everyMargin,
+              top: 0,
+              bottom: xLabelHeight,
+              child: Container(
+                width: 0.3,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                 ),
               ),
-              Positioned(
-                left: fontSize + everyMargin,
-                right: webChartBean.legend.isNotEmpty ? tipWidth : 0,
-                bottom: xLabelHeight,
-                child: Container(
-                  height: 0.3,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                  ),
+            ),
+            Positioned(
+              left: fontSize + everyMargin,
+              right: webChartBean.legend.isNotEmpty ? tipWidth : 0,
+              bottom: xLabelHeight,
+              child: Container(
+                height: 0.3,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                 ),
               ),
-              // 下面就根据具体情况进行处理了
-            ]
-              ..addAll(webChartBean.haveData ? initDraw() : [Container()])
-              ..addAll(webChartBean.haveData && webChartBean.legend.isNotEmpty
-                  ? drawTipLabel()
-                  : [Container()]),
-          ),
+            ),
+            // 下面就根据具体情况进行处理了
+            Positioned(
+              left: eventTipLeft,
+              right: eventTipPositionedRight,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (TapDownDetails details) {
+                  RenderBox renderBox = context.findRenderObject();
+                  var localPosition =
+                      renderBox.globalToLocal(details.globalPosition);
+                  onStart(localPosition, eventTipLeft, eventTipRight);
+                },
+                onHorizontalDragUpdate: (DragUpdateDetails details) {
+                  RenderBox renderBox = context.findRenderObject();
+                  var localPosition =
+                      renderBox.globalToLocal(details.globalPosition);
+                  onUpdate(localPosition, eventTipLeft, eventTipRight);
+                },
+                onTapUp: (TapUpDetails details) {
+                  onEnd();
+                },
+                onHorizontalDragEnd: (DragEndDetails details) {
+                  onEnd();
+                },
+                onHorizontalDragCancel: () {
+                  onEnd();
+                },
+                child: Stack(
+                  children: webChartBean.haveData ? initDraw() : [Container()]
+                    ..add(Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: xLabelHeight,
+                      child: Offstage(
+                        offstage: currentTipIndex == -1,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(123, 0, 0, 0),
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: FittedBox(
+                            alignment: Alignment.topLeft,
+                            child: Text.rich(
+                              TextSpan(children: [
+                                TextSpan(
+                                  text: "$currentTipIndex[详情]\n",
+                                ),
+                              ]),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: fontSize,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )),
+                ),
+              ),
+            ),
+          ]..addAll(webChartBean.haveData && webChartBean.legend.isNotEmpty
+              ? drawTipLabel()
+              : [Container()]),
         ),
       ),
     );
+  }
+
+  void onStart(Offset position, double left, double right) {
+    debugPrint(
+        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
+    onCheck(position, left, right);
+  }
+
+  void onUpdate(Offset position, double left, double right) {
+    debugPrint(
+        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
+    onCheck(position, left, right);
+  }
+
+  void onCheck(Offset position, double left, double right) {
+    if (position.dx < left || position.dx > right) {
+      onEnd();
+      return;
+    }
+    if (currentChartEveryXWidth <= 0) {
+      onEnd();
+      return;
+    }
+    var index = ((position.dx - left) / currentChartEveryXWidth).floor();
+    if (index > webChartBean.xAxis.length - 1) {
+      onEnd();
+      return;
+    }
+    if (currentTipIndex == index) {
+      return;
+    }
+    currentTipIndex = index;
+    setState(() {});
+  }
+
+  void onEnd() {
+    debugPrint("*** end");
+    currentTipIndex = -1;
+    setState(() {});
   }
 }
 
