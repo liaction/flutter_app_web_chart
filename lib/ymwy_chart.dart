@@ -40,6 +40,7 @@ class _YMWYChartState extends State<YMWYChart> {
     bool line = false;
     bool haveData = false;
     List<List<String>> dataList = List();
+    List<List<String>> dataYTipList = List();
     String yLabel = "";
     if (null != widget.chartData && widget.chartData.isNotEmpty) {
       // 移除无效的数据
@@ -71,6 +72,8 @@ class _YMWYChartState extends State<YMWYChart> {
         }
         var d = cd.children.map((data) => "${data.yValue}").toList();
         dataList.add(d);
+        var dTip = cd.children.map((data) => "${data.yLabel}").toList();
+        dataYTipList.add(dTip);
       }
     } else {
       haveData = false;
@@ -81,7 +84,7 @@ class _YMWYChartState extends State<YMWYChart> {
         legend: legend,
         dataList: dataList,
         haveData: haveData,
-        ymwy: {"yLabel": yLabel});
+        ymwy: {"yLabel": yLabel, "yTipLabel": dataYTipList});
   }
 
   void doWhenTipLabelClick(int index) {}
@@ -399,11 +402,20 @@ class _YMWYChartState extends State<YMWYChart> {
                           child: FittedBox(
                             alignment: Alignment.topLeft,
                             child: Text.rich(
-                              TextSpan(children: [
+                              TextSpan(
+                                  children: [
                                 TextSpan(
-                                  text: "$currentTipIndex[详情]\n",
+                                  text: currentTipIndex == -1
+                                      ? ""
+                                      : "${webChartBean.xAxis[currentTipIndex]}[详情]\n",
                                 ),
-                              ]),
+                              ]..addAll(webChartBean.legend.map((s) {
+                                      return TextSpan(
+                                        text: currentTipIndex == -1
+                                            ? ""
+                                            : "$s:${webChartBean.ymwy["yTipLabel"][webChartBean.legend.indexOf(s)][currentTipIndex]}\n",
+                                      );
+                                    }))),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: fontSize,
@@ -425,14 +437,14 @@ class _YMWYChartState extends State<YMWYChart> {
   }
 
   void onStart(Offset position, double left, double right) {
-    debugPrint(
-        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
+//    debugPrint(
+//        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
     onCheck(position, left, right);
   }
 
   void onUpdate(Offset position, double left, double right) {
-    debugPrint(
-        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
+//    debugPrint(
+//        "*** move : [everyWidth : $currentChartEveryXWidth], [left : $left] , [right : $right], [position : $position]");
     onCheck(position, left, right);
   }
 
