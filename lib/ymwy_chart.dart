@@ -308,11 +308,12 @@ class _YMWYChartState extends State<YMWYChart> {
 
   @override
   Widget build(BuildContext context) {
-    final eventTipLeft = fontSize + everyMargin;
+    final eventTipPositionLeft = fontSize + everyMargin;
+    final eventTipLeft = eventTipPositionLeft + 20;
     final eventTipPositionedRight =
         (webChartBean.legend.isNotEmpty ? tipWidth : 0) + everyMargin;
     final eventTipRight =
-        MediaQuery.of(context).size.width - tipWidth - padding;
+        MediaQuery.of(context).size.width - eventTipPositionedRight - padding;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -354,7 +355,7 @@ class _YMWYChartState extends State<YMWYChart> {
             ),
             // 下面就根据具体情况进行处理了
             Positioned(
-              left: eventTipLeft,
+              left: eventTipPositionLeft,
               right: eventTipPositionedRight,
               top: 0,
               bottom: 0,
