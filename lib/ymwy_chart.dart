@@ -12,8 +12,9 @@ import 'package:flutter_inappbrowser/flutter_inappbrowser.dart';
 ///
 class YMWYChart extends StatefulWidget {
   final List<YMWYChartData> chartData;
+  final Size size;
 
-  YMWYChart({Key key, this.chartData}) : super(key: key);
+  YMWYChart({Key key, this.chartData, this.size}) : super(key: key);
 
   @override
   _YMWYChartState createState() => _YMWYChartState();
@@ -34,6 +35,8 @@ class _YMWYChartState extends State<YMWYChart> {
   int currentTipIndex = -1;
   double currentChartEveryXWidth = -1;
 
+  Size chartSize;
+
   void resolveData() {
     List<String> legend = List<String>();
     List<String> xAxis = List<String>();
@@ -42,6 +45,7 @@ class _YMWYChartState extends State<YMWYChart> {
     List<List<String>> dataList = List();
     List<List<String>> dataYTipList = List();
     String yLabel = "";
+    bool showTipLabel = false;
     if (null != widget.chartData && widget.chartData.isNotEmpty) {
       // 移除无效的数据
       widget.chartData.removeWhere((data) =>
@@ -62,14 +66,13 @@ class _YMWYChartState extends State<YMWYChart> {
       haveData = true;
       var chartData = widget.chartData.first;
       line = chartData.chartType == YMWYChartType.LINE;
-      bool showTipLabel = chartData.showTipChart;
+      showTipLabel = chartData.showTipChart;
       yLabel = chartData.yChartLabel ?? "";
       xAxis.addAll(chartData.children.map((data) => data.xLabel));
       for (var index = 0; index < widget.chartData.length; ++index) {
         var cd = widget.chartData[index];
-        if (showTipLabel) {
-          legend.add(cd.tipLabel.label);
-        }
+        if (showTipLabel) {}
+        legend.add(cd.tipLabel.label);
         var d = cd.children.map((data) => "${data.yValue}").toList();
         dataList.add(d);
         var dTip = cd.children.map((data) => "${data.yLabel}").toList();
@@ -84,7 +87,11 @@ class _YMWYChartState extends State<YMWYChart> {
         legend: legend,
         dataList: dataList,
         haveData: haveData,
-        ymwy: {"yLabel": yLabel, "yTipLabel": dataYTipList});
+        ymwy: {
+          "yLabel": yLabel,
+          "yTipLabel": dataYTipList,
+          "showTipLabel": showTipLabel
+        });
   }
 
   void doWhenTipLabelClick(int index) {}
@@ -97,20 +104,31 @@ class _YMWYChartState extends State<YMWYChart> {
 
   @override
   void initState() {
-    resolveData();
+    if (null == widget.size) {
+      WidgetsBinding.instance.addPostFrameCallback((d) {
+        var size = MediaQuery.of(context).size;
+        chartSize = Size(size.width, size.height / 2);
+        resolveData();
+        setState(() {});
+      });
+    } else {
+      chartSize = widget.size;
+      resolveData();
+    }
     super.initState();
   }
 
   List<Widget> initDraw() {
-    final size = MediaQuery.of(context).size;
-    final yHeight = size.height / 2 - padding * 2 - xLabelHeight;
+    final showTipLabel = webChartBean.ymwy["showTipLabel"];
+    final size = chartSize;
+    final yHeight = size.height - padding * 2 - xLabelHeight;
     final xDataCount = webChartBean.xAxis.length;
     final xEveryWidth = min(
         (size.width -
                 fontSize -
                 everyMargin * 3 -
                 padding * 2 -
-                (webChartBean.legend.isNotEmpty ? tipWidth : 0)) /
+                (showTipLabel ? tipWidth : 0)) /
             (1.0 * (xDataCount == 0 ? 1 : xDataCount)),
         xMaxEveryWidth);
     currentChartEveryXWidth = xEveryWidth;
@@ -148,14 +166,13 @@ class _YMWYChartState extends State<YMWYChart> {
         child: SizedBox(
           width: xEveryWidth,
           height: xLabelHeight,
-          child: FittedBox(
-            child: Text(
-              xLabel,
-              style: TextStyle(
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
+          child: Text(
+            xLabel,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 8,
             ),
+            textAlign: TextAlign.center,
           ),
         ),
         bottom: 0,
@@ -265,15 +282,24 @@ class _YMWYChartState extends State<YMWYChart> {
   List<Widget> drawTipLabel() {
     List<Widget> fillWidgets = List();
     double fixValue = 0;
-    double left = MediaQuery.of(context).size.width - padding - tipWidth;
+    double left = chartSize.width - padding - tipWidth;
+    List<TextSpan> textSpans = List();
     for (var index = 0; index < webChartBean.legend.length; ++index) {
       bool hide = false;
       var color = colors[index];
-      var legend = webChartBean.legend[index];
+      var label = webChartBean.legend[index];
+      StringBuffer tipS = StringBuffer();
+      for (var i = 0; i < label.length / 5 + 1; i++) {
+        if (i != 0) {
+          tipS.write("     ");
+        }
+        tipS.write(label.substring(
+            min(i * 5, label.length), min((i + 1) * 5, label.length)));
+        tipS.writeln();
+      }
       var textSpan = TextSpan(
           style: TextStyle(
             color: hide ? Colors.white30 : Colors.white,
-            fontSize: fontSize,
           ),
           children: [
             TextSpan(
@@ -281,48 +307,51 @@ class _YMWYChartState extends State<YMWYChart> {
                 style: TextStyle(
                   color: color,
                   backgroundColor: color.withOpacity(hide ? 0.5 : 1),
+                  fontSize: 8,
                 )),
             TextSpan(text: "  "),
-            TextSpan(text: legend),
+            TextSpan(text: tipS.toString()),
           ]);
-      TextPainter textPainter = TextPainter(
-        text: textSpan,
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout(maxWidth: tipWidth);
-      double height = textPainter.height;
-      fixValue += height + everyMargin;
-      var legendWidget = Positioned(
-          right: 0,
-          top: fixValue,
-          left: left,
-          child: GestureDetector(
-            onTap: () {
-              doWhenTipLabelClick(index);
-            },
-            child: Text.rich(
-              textSpan,
-            ),
-          ));
-      fillWidgets.add(legendWidget);
+      textSpans.add(textSpan);
     }
+    var legendWidget = Positioned(
+        right: 0,
+        top: fixValue,
+        left: left,
+        bottom: 0,
+        child: Text.rich(
+          TextSpan(
+            children: textSpans,
+          ),
+          style: TextStyle(
+            fontSize: 10,
+          ),
+        ));
+    fillWidgets.add(legendWidget);
     return fillWidgets;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (null == webChartBean) {
+      return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Color(0xFF161816),
+          ));
+    }
+    final showTipLabel = webChartBean.ymwy["showTipLabel"];
     final eventTipPositionLeft = fontSize + everyMargin;
     final eventTipLeft = eventTipPositionLeft + 20;
-    final eventTipPositionedRight =
-        (webChartBean.legend.isNotEmpty ? tipWidth : 0) + everyMargin;
-    final eventTipRight =
-        MediaQuery.of(context).size.width - eventTipPositionedRight - padding;
+    final eventTipPositionedRight = (showTipLabel ? tipWidth : 0) + everyMargin;
+    final eventTipRight = chartSize.width - eventTipPositionedRight - padding;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Color(0xFF161816),
       ),
-      child: SizedBox.expand(
+      child: SizedBox.fromSize(
+        size: chartSize,
         child: Stack(
           children: <Widget>[
             RotatedBox(
@@ -331,6 +360,7 @@ class _YMWYChartState extends State<YMWYChart> {
                 webChartBean.ymwy['yLabel'] ?? "",
                 style: TextStyle(
                   color: Colors.white,
+                  fontSize: 10,
                 ),
               ),
             ),
@@ -347,7 +377,7 @@ class _YMWYChartState extends State<YMWYChart> {
             ),
             Positioned(
               left: fontSize + everyMargin,
-              right: webChartBean.legend.isNotEmpty ? tipWidth : 0,
+              right: showTipLabel ? tipWidth : 0,
               bottom: xLabelHeight,
               child: Container(
                 height: 0.3,
@@ -399,27 +429,30 @@ class _YMWYChartState extends State<YMWYChart> {
                             color: Color.fromARGB(123, 0, 0, 0),
                           ),
                           padding: const EdgeInsets.all(20),
-                          child: FittedBox(
-                            alignment: Alignment.topLeft,
-                            child: Text.rich(
+                          child: Text.rich(
+                            TextSpan(
+                                children: [
                               TextSpan(
-                                  children: [
-                                TextSpan(
-                                  text: currentTipIndex == -1
-                                      ? ""
-                                      : "${webChartBean.xAxis[currentTipIndex]}[详情]\n",
+                                text: currentTipIndex == -1
+                                    ? ""
+                                    : "${webChartBean.xAxis[currentTipIndex]}[详情]\n",
+                                style: TextStyle(
+                                  fontSize: fontSize,
                                 ),
-                              ]..addAll(webChartBean.legend.map((s) {
-                                      return TextSpan(
-                                        text: currentTipIndex == -1
-                                            ? ""
-                                            : "$s:${webChartBean.ymwy["yTipLabel"][webChartBean.legend.indexOf(s)][currentTipIndex]}\n",
-                                      );
-                                    }))),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: fontSize,
                               ),
+                            ]..addAll(webChartBean.legend.map((s) {
+                                    return TextSpan(
+                                      text: currentTipIndex == -1
+                                          ? ""
+                                          : "$s:${webChartBean.ymwy["yTipLabel"][webChartBean.legend.indexOf(s)][currentTipIndex]}\n",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                      ),
+                                    );
+                                  }))),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: fontSize,
                             ),
                           ),
                         ),
@@ -428,7 +461,7 @@ class _YMWYChartState extends State<YMWYChart> {
                 ),
               ),
             ),
-          ]..addAll(webChartBean.haveData && webChartBean.legend.isNotEmpty
+          ]..addAll(webChartBean.haveData && showTipLabel
               ? drawTipLabel()
               : [Container()]),
         ),

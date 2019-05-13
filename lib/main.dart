@@ -110,9 +110,9 @@ class _MyHomePageState extends State<MyHomePage> {
               YMWYChartItemData(
                   xValue: 4.0, yValue: 12, xLabel: "12月", yLabel: "第十二"),
             ],
-            tipLabel: YMWYChartTipData(label: "西北五省"),
+            tipLabel: YMWYChartTipData(label: "西北五省其它"),
             yChartLabel: "排名",
-            charDataLabel: "西北五省",
+            charDataLabel: "西北五省其它",
             chartType: chartDataList.length.isEven ? YMWYChartType.REACT : YMWYChartType.LINE,
             color: Colors.red,
             showTipChart: change),
@@ -143,7 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
             YMWYChartItemData(
                 xValue: 3.0, yValue: 1, xLabel: "12月", yLabel: "第一"),
           ],
-          tipLabel: YMWYChartTipData(label: "其它省份ymwy"),
+          tipLabel: YMWYChartTipData(label: "其它省份ymwy还是很长很长"),
           yChartLabel: "排名",
           charDataLabel: "其它省份",
           chartType: YMWYChartType.LINE,
