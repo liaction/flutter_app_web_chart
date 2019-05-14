@@ -36,6 +36,7 @@ class _YMWYChartState extends State<YMWYChart> {
   double currentChartEveryXWidth = -1;
 
   Size chartSize;
+  double maxLineChartValue = 0.0;
 
   void resolveData() {
     List<String> legend = List<String>();
@@ -46,6 +47,7 @@ class _YMWYChartState extends State<YMWYChart> {
     List<List<String>> dataYTipList = List();
     String yLabel = "";
     bool showTipLabel = false;
+    bool up = true;
     if (null != widget.chartData && widget.chartData.isNotEmpty) {
       // 移除无效的数据
       widget.chartData.removeWhere((data) =>
@@ -67,12 +69,13 @@ class _YMWYChartState extends State<YMWYChart> {
       var chartData = widget.chartData.first;
       line = chartData.chartType == YMWYChartType.LINE;
       showTipLabel = chartData.showTipChart;
+      up = chartData.up;
       yLabel = chartData.yChartLabel ?? "";
       xAxis.addAll(chartData.children.map((data) => data.xLabel));
       for (var index = 0; index < widget.chartData.length; ++index) {
         var cd = widget.chartData[index];
         if (showTipLabel) {}
-        legend.add(cd.tipLabel.label);
+        legend.add(cd.tipLabel?.label ?? "");
         var d = cd.children.map((data) => "${data.yValue}").toList();
         dataList.add(d);
         var dTip = cd.children.map((data) => "${data.yLabel}").toList();
@@ -90,7 +93,8 @@ class _YMWYChartState extends State<YMWYChart> {
         ymwy: {
           "yLabel": yLabel,
           "yTipLabel": dataYTipList,
-          "showTipLabel": showTipLabel
+          "showTipLabel": showTipLabel,
+          "up": up
         });
   }
 
@@ -182,7 +186,8 @@ class _YMWYChartState extends State<YMWYChart> {
     }
     return fillWidgets
       ..addAll(webChartBean.line
-          ? drawLine(yMaxValue, xEveryWidth, yHeight)
+          ? drawLine(yMaxValue, xEveryWidth, yHeight,
+              useSort: webChartBean.ymwy["up"])
           : drawBar(yMaxValue, xEveryWidth, yHeight));
   }
 
@@ -222,12 +227,16 @@ class _YMWYChartState extends State<YMWYChart> {
   List<Widget> drawLine(double maxValue, double everyWidth, double yHeight,
       {bool useSort = true}) {
     List<Widget> fillWidgets = List();
+    maxLineChartValue = maxValue;
     for (var index = 0; index < webChartBean.dataList.length; ++index) {
       var dataList = webChartBean.dataList[index];
       var color = colors[index % colors.length];
       for (var itemIndex = 0; itemIndex < dataList.length; ++itemIndex) {
         var data = dataList[itemIndex];
         data = double.tryParse(data) ?? 0;
+        if(data == 0){
+          continue;
+        }
         var height = data * yHeight / (maxValue);
         if (useSort) {
           height = yHeight - height;
@@ -386,6 +395,23 @@ class _YMWYChartState extends State<YMWYChart> {
                 ),
               ),
             ),
+            Positioned(
+              left: 0,
+              bottom: xLabelHeight,
+              width: fontSize + everyMargin - 2,
+              child: Text(
+                webChartBean.line
+                    ? (webChartBean.ymwy["up"]
+                        ? '${resolveDoubleNumNot100(maxLineChartValue.toString())}'
+                        : "0")
+                    : "0",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
             // 下面就根据具体情况进行处理了
             Positioned(
               left: eventTipPositionLeft,
@@ -444,7 +470,8 @@ class _YMWYChartState extends State<YMWYChart> {
                                     return TextSpan(
                                       text: currentTipIndex == -1
                                           ? ""
-                                          : "$s:${webChartBean.ymwy["yTipLabel"][webChartBean.legend.indexOf(s)][currentTipIndex]}\n",
+                                          : "$s ${webChartBean.ymwy["yTipLabel"][webChartBean.legend.indexOf(s)][currentTipIndex]}\n"
+                                              .replaceAll("null", ""),
                                       style: TextStyle(
                                         fontSize: 10,
                                       ),
@@ -507,6 +534,24 @@ class _YMWYChartState extends State<YMWYChart> {
     currentTipIndex = -1;
     setState(() {});
   }
+}
+
+String resolveDoubleNumNot100(String value,
+    {int length = 2, bool forceTwoLittle = true}) {
+  var resultIfInt = int.tryParse(value);
+  if (resultIfInt != null) {
+    return value;
+  }
+  if (value.endsWith(".00")) {
+    return value.substring(0, value.length - 3);
+  }
+  if (value.endsWith(".0")) {
+    return value.substring(0, value.length - 2);
+  }
+  if (forceTwoLittle) {
+    length = 2;
+  }
+  return ((double.tryParse(value.toString()) ?? 0)).toStringAsFixed(length);
 }
 
 class YMWYPointerBean {
@@ -610,8 +655,8 @@ class YMWYPair<E, F> {
 }
 
 var colors = [
-  Color(0xFF9127ae),
   Color(0xFF376AFF),
+  Color(0xFF9127ae),
   Color(0xFFff5a00),
   Color(0xFF61a0a8),
   Color(0xFFd48265),
